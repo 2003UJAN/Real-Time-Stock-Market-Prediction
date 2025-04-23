@@ -1,110 +1,73 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
-from data_loader import load_stock_data, preprocess_data
+from datetime import datetime
 from model_lstm import build_lstm_model
 from arima_model import predict_arima
-from utils import plot_predictions
-from sklearn.metrics import mean_squared_error
-from datetime import date
+from data_loader import load_stock_data, preprocess_data
+import numpy as np
+from tensorflow.keras.callbacks import EarlyStopping
 
-st.set_page_config(page_title="Stock Predictor", layout="centered")
-st.title("📈 Stock Price Predictor")
+# List of 50 popular stock tickers (you can expand or modify this list)
+TICKERS = [
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'BABA', 'V',
+    'JNJ', 'WMT', 'UNH', 'JPM', 'PG', 'MA', 'DIS', 'HD', 'BAC', 'PFE',
+    'ADBE', 'INTC', 'KO', 'PEP', 'XOM', 'MRK', 'CSCO', 'T', 'CVX', 'VZ',
+    'NKE', 'ORCL', 'ABT', 'CRM', 'LLY', 'MCD', 'ACN', 'COST', 'MDT', 'TXN',
+    'AMAT', 'IBM', 'AVGO', 'QCOM', 'TMO', 'GE', 'UPS', 'PM', 'CAT', 'HON'
+]
 
-# --- Ticker List (50 popular stocks) ---
-popular_tickers = {
-    "Apple (AAPL)": "AAPL",
-    "Tesla (TSLA)": "TSLA",
-    "Microsoft (MSFT)": "MSFT",
-    "Amazon (AMZN)": "AMZN",
-    "Google (GOOG)": "GOOG",
-    "NVIDIA (NVDA)": "NVDA",
-    "Meta (META)": "META",
-    "Netflix (NFLX)": "NFLX",
-    "Intel (INTC)": "INTC",
-    "AMD (AMD)": "AMD",
-    "IBM (IBM)": "IBM",
-    "Zoom (ZM)": "ZM",
-    "Salesforce (CRM)": "CRM",
-    "Adobe (ADBE)": "ADBE",
-    "PayPal (PYPL)": "PYPL",
-    "Spotify (SPOT)": "SPOT",
-    "Alibaba (BABA)": "BABA",
-    "Berkshire Hathaway (BRK-B)": "BRK-B",
-    "Walmart (WMT)": "WMT",
-    "Procter & Gamble (PG)": "PG",
-    "Johnson & Johnson (JNJ)": "JNJ",
-    "Coca-Cola (KO)": "KO",
-    "PepsiCo (PEP)": "PEP",
-    "McDonald's (MCD)": "MCD",
-    "Visa (V)": "V",
-    "Mastercard (MA)": "MA",
-    "American Express (AXP)": "AXP",
-    "Boeing (BA)": "BA",
-    "Disney (DIS)": "DIS",
-    "Chevron (CVX)": "CVX",
-    "ExxonMobil (XOM)": "XOM",
-    "Ford (F)": "F",
-    "General Motors (GM)": "GM",
-    "Uber (UBER)": "UBER",
-    "Lyft (LYFT)": "LYFT",
-    "Snapchat (SNAP)": "SNAP",
-    "Twitter (TWTR)": "TWTR",
-    "Roku (ROKU)": "ROKU",
-    "Domino’s (DPZ)": "DPZ",
-    "Nike (NKE)": "NKE",
-    "Starbucks (SBUX)": "SBUX",
-    "Target (TGT)": "TGT",
-    "AT&T (T)": "T",
-    "Verizon (VZ)": "VZ",
-    "Pfizer (PFE)": "PFE",
-    "Moderna (MRNA)": "MRNA",
-    "Moderna (MRNA)": "MRNA",
-    "Lucid (LCID)": "LCID",
-    "Rivian (RIVN)": "RIVN"
-}
+# Streamlit UI
+st.title("📈 Real-Time Stock Price Prediction")
 
-# --- Sidebar Inputs ---
-ticker_label = st.sidebar.selectbox("Select a Stock", list(popular_tickers.keys()))
-ticker = popular_tickers[ticker_label]
+st.sidebar.header("Configuration")
 
-start_date = st.sidebar.date_input("Start Date", date(2020, 1, 1))
-end_date = st.sidebar.date_input("End Date", date(2024, 12, 31))
-model_type = st.sidebar.selectbox("Model Type", ["LSTM", "ARIMA"])
-seq_length = st.sidebar.slider("Sequence Length (LSTM)", 30, 100, 60)
+ticker = st.sidebar.selectbox("Select Ticker", TICKERS, index=0)
+start_date = st.sidebar.date_input("Start Date", datetime(2020, 1, 1))
+end_date = st.sidebar.date_input("End Date", datetime.today())
+model_choice = st.sidebar.radio("Select Model", ["LSTM", "ARIMA"])
 
-# --- Load Data ---
-df = load_stock_data(ticker, start_date, end_date)
+seq_length = st.sidebar.slider("Sequence Length (LSTM only)", 20, 100, 60)
 
-if df.empty:
-    st.warning("No data found for this ticker and date range.")
-    st.stop()
+# Load Data
+try:
+    df = load_stock_data(ticker, str(start_date), str(end_date))
+    st.write(f"### {ticker} Stock Closing Price")
+    st.line_chart(df['Close'])
 
-st.subheader(f"{ticker} Closing Price")
-st.line_chart(df["Close"])
+    if model_choice == "LSTM":
+        # Preprocess
+        X, y, scaler = preprocess_data(df, seq_length)
+        split = int(0.8 * len(X))
+        X_train, X_test = X[:split], X[split:]
+        y_train, y_test = y[:split], y[split:]
 
-# --- Predict ---
-if model_type == "LSTM":
-    X, y, scaler = preprocess_data(df, seq_length)
-    X_train, y_train = X[:-30], y[:-30]
-    X_test, y_test = X[-30:], y[-30:]
+        # Build and train
+        model = build_lstm_model((X.shape[1], 1))
+        model.fit(X_train, y_train, epochs=10, batch_size=32,
+                  validation_split=0.1, verbose=0,
+                  callbacks=[EarlyStopping(patience=3)])
 
-    model = build_lstm_model((X_train.shape[1], X_train.shape[2]))
+        # Predict
+        y_pred = model.predict(X_test)
+        y_pred_inv = scaler.inverse_transform(y_pred)
+        y_test_inv = scaler.inverse_transform(y_test.reshape(-1, 1))
 
-    with st.spinner("Training LSTM Model..."):
-        model.fit(X_train, y_train, epochs=5, batch_size=16, verbose=0)
+        # Results
+        result_df = pd.DataFrame({
+            "Actual": y_test_inv.flatten(),
+            "Predicted": y_pred_inv.flatten()
+        })
+        st.write("### 📊 LSTM Prediction Results")
+        st.line_chart(result_df)
 
-    predicted = model.predict(X_test)
-    predicted_prices = scaler.inverse_transform(np.concatenate((np.zeros((predicted.shape[0], 1)), predicted), axis=1))[:, 1]
-    actual_prices = scaler.inverse_transform(np.concatenate((np.zeros((y_test.shape[0], 1)), y_test.reshape(-1, 1)), axis=1))[:, 1]
+    elif model_choice == "ARIMA":
+        y_test, y_pred = predict_arima(df)
+        result_df = pd.DataFrame({
+            "Actual": y_test,
+            "Predicted": y_pred
+        })
+        st.write("### 📊 ARIMA Prediction Results")
+        st.line_chart(result_df)
 
-elif model_type == "ARIMA":
-    actual_prices, predicted_prices = predict_arima(df)
-
-# --- Plot Predictions ---
-fig = plot_predictions(actual_prices, predicted_prices)
-st.pyplot(fig)
-
-# --- Metrics ---
-mse = mean_squared_error(actual_prices, predicted_prices)
-st.metric("Mean Squared Error", f"{mse:.2f}")
+except Exception as e:
+    st.error(f"❌ Error: {e}")
