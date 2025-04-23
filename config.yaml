@@ -1,0 +1,5 @@
+ticker: AAPL
+start_date: 2020-01-01
+end_date: 2024-12-31
+sequence_length: 60
+model_type: lstm
