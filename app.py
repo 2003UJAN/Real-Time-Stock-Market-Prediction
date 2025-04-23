@@ -9,16 +9,9 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 # List of 50 stock tickers
 TICKERS = {
-    'Apple': 'AAPL', 'Microsoft': 'MSFT', 'Alphabet (Google)': 'GOOGL', 'Amazon': 'AMZN', 'Tesla': 'TSLA',
-    'Meta (Facebook)': 'META', 'NVIDIA': 'NVDA', 'Netflix': 'NFLX', 'Alibaba': 'BABA', 'Visa': 'V',
-    'Johnson & Johnson': 'JNJ', 'Walmart': 'WMT', 'UnitedHealth': 'UNH', 'JPMorgan Chase': 'JPM', 'Procter & Gamble': 'PG',
-    'Mastercard': 'MA', 'Disney': 'DIS', 'Home Depot': 'HD', 'Bank of America': 'BAC', 'Pfizer': 'PFE',
-    'Adobe': 'ADBE', 'Intel': 'INTC', 'Coca-Cola': 'KO', 'PepsiCo': 'PEP', 'ExxonMobil': 'XOM',
-    'Merck': 'MRK', 'Cisco': 'CSCO', 'AT&T': 'T', 'Chevron': 'CVX', 'Verizon': 'VZ',
-    'Nike': 'NKE', 'Oracle': 'ORCL', 'Abbott': 'ABT', 'Salesforce': 'CRM', 'Eli Lilly': 'LLY',
-    'McDonald\'s': 'MCD', 'Accenture': 'ACN', 'Costco': 'COST', 'Medtronic': 'MDT', 'Texas Instruments': 'TXN',
-    'Applied Materials': 'AMAT', 'IBM': 'IBM', 'Broadcom': 'AVGO', 'Qualcomm': 'QCOM', 'Thermo Fisher': 'TMO',
-    'General Electric': 'GE', 'UPS': 'UPS', 'Philip Morris': 'PM', 'Caterpillar': 'CAT', 'Honeywell': 'HON'
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'BABA', 'V', 
+    'JNJ', 'WMT', 'UNH', 'JPM', 'PG', 'MA', 'DIS', 'HD', 'BAC', 'PFE', 
+    'AMAT', 'IBM', 'AVGO', 'QCOM', 'TMO', 'GE', 'UPS', 'PM', 'CAT', 'HON'
 }
 
 st.set_page_config(page_title="Real-Time Stock Predictor", layout="wide")
