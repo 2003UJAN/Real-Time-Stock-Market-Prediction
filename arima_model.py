@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 
 def train_arima(data, order=(5, 1, 0)):
