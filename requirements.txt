@@ -6,5 +6,4 @@ matplotlib
 scikit-learn
 tensorflow
 transformers
-newsapi-python
-nltk
+statsmodels
