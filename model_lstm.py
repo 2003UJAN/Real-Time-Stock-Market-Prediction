@@ -1,10 +1,9 @@
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 def build_lstm_model(input_shape):
     model = Sequential()
-    model.add(Input(shape=input_shape))
-    model.add(LSTM(50, return_sequences=True))
+    model.add(LSTM(50, return_sequences=True, input_shape=input_shape))
     model.add(Dropout(0.2))
     model.add(LSTM(50))
     model.add(Dropout(0.2))
