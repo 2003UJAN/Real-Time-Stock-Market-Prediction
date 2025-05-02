@@ -7,8 +7,9 @@ from arima_model import predict_arima, plot_arima_results, arima_rmse
 from data_loader import load_stock_data, preprocess_data
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
+from utils import plot_predictions  # Import the new function
 
-# Ticker symbol dictionary with full company names
+# Dictionary of ticker symbols with company names
 TICKERS = {
     'AAPL': 'Apple Inc.', 'MSFT': 'Microsoft Corp.', 'GOOGL': 'Alphabet Inc.',
     'AMZN': 'Amazon.com Inc.', 'TSLA': 'Tesla Inc.', 'META': 'Meta Platforms Inc.',
@@ -28,35 +29,25 @@ TICKERS = {
     'FDX': 'FedEx Corp.', 'ADBE': 'Adobe Inc.', 'PYPL': 'PayPal Holdings'
 }
 
-# Streamlit UI setup
 st.set_page_config(page_title="Real-Time Stock Predictor", layout="wide")
 st.title("📈 Real-Time Stock Price Prediction App")
 
-# Sidebar for configuration
 st.sidebar.header("⚙️ Configuration")
-selected_ticker = st.sidebar.selectbox("Select Company", list(TICKERS.keys()), format_func=lambda x: f"{x} - {TICKERS[x]}")
+selected_company = st.sidebar.selectbox("Select Company", list(TICKERS.keys()), format_func=lambda x: f"{x} - {TICKERS[x]}")
 start_date = st.sidebar.date_input("Start Date", datetime(2020, 1, 1))
 end_date = st.sidebar.date_input("End Date", datetime.today())
 model_choice = st.sidebar.radio("Select Model", ["LSTM", "ARIMA"])
 seq_length = st.sidebar.slider("Sequence Length (for LSTM)", 20, 100, 60)
 
-# Validation
-if start_date >= end_date:
-    st.error("❌ Start Date must be earlier than End Date.")
-    st.stop()
-
 try:
-    # Load and validate stock data
-    df = load_stock_data(selected_ticker, str(start_date), str(end_date))
-    if df.empty or len(df) < seq_length:
-        st.warning("⚠️ Not enough data available for the selected ticker or date range.")
-        st.stop()
+    df = load_stock_data(selected_company, str(start_date), str(end_date))
 
-    # Plot raw closing price
-    st.write(f"### 📊 {TICKERS[selected_ticker]} ({selected_ticker}) Stock Closing Price")
+    if df.empty:
+        raise ValueError("No data found for the selected ticker or date range.")
+
+    st.write(f"### 📊 {TICKERS[selected_company]} ({selected_company}) Stock Closing Price")
     st.line_chart(df['Close'])
 
-    # Model selection
     if model_choice == "LSTM":
         X, y, scaler = preprocess_data(df, seq_length)
         split = int(0.8 * len(X))
@@ -76,7 +67,8 @@ try:
             "Predicted": y_pred_inv.flatten()
         })
         st.write("### 🤖 LSTM Prediction Results")
-        st.line_chart(result_df)
+        plot_predictions(y_test_inv.flatten(), y_pred_inv.flatten())  # Using the function here
+        st.pyplot(plt)  # Displaying the plot
 
     elif model_choice == "ARIMA":
         actual, predicted = predict_arima(df)
