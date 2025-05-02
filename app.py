@@ -8,7 +8,7 @@ from data_loader import load_stock_data, preprocess_data
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 
-# Dictionary of ticker symbols with company names
+# Ticker symbol dictionary with full company names
 TICKERS = {
     'AAPL': 'Apple Inc.', 'MSFT': 'Microsoft Corp.', 'GOOGL': 'Alphabet Inc.',
     'AMZN': 'Amazon.com Inc.', 'TSLA': 'Tesla Inc.', 'META': 'Meta Platforms Inc.',
@@ -28,25 +28,35 @@ TICKERS = {
     'FDX': 'FedEx Corp.', 'ADBE': 'Adobe Inc.', 'PYPL': 'PayPal Holdings'
 }
 
+# Streamlit UI setup
 st.set_page_config(page_title="Real-Time Stock Predictor", layout="wide")
 st.title("📈 Real-Time Stock Price Prediction App")
 
+# Sidebar for configuration
 st.sidebar.header("⚙️ Configuration")
-selected_company = st.sidebar.selectbox("Select Company", list(TICKERS.keys()), format_func=lambda x: f"{x} - {TICKERS[x]}")
+selected_ticker = st.sidebar.selectbox("Select Company", list(TICKERS.keys()), format_func=lambda x: f"{x} - {TICKERS[x]}")
 start_date = st.sidebar.date_input("Start Date", datetime(2020, 1, 1))
 end_date = st.sidebar.date_input("End Date", datetime.today())
 model_choice = st.sidebar.radio("Select Model", ["LSTM", "ARIMA"])
 seq_length = st.sidebar.slider("Sequence Length (for LSTM)", 20, 100, 60)
 
+# Validation
+if start_date >= end_date:
+    st.error("❌ Start Date must be earlier than End Date.")
+    st.stop()
+
 try:
-    df = load_stock_data(selected_company, str(start_date), str(end_date))
+    # Load and validate stock data
+    df = load_stock_data(selected_ticker, str(start_date), str(end_date))
+    if df.empty or len(df) < seq_length:
+        st.warning("⚠️ Not enough data available for the selected ticker or date range.")
+        st.stop()
 
-    if df.empty:
-        raise ValueError("No data found for the selected ticker or date range.")
-
-    st.write(f"### 📊 {TICKERS[selected_company]} ({selected_company}) Stock Closing Price")
+    # Plot raw closing price
+    st.write(f"### 📊 {TICKERS[selected_ticker]} ({selected_ticker}) Stock Closing Price")
     st.line_chart(df['Close'])
 
+    # Model selection
     if model_choice == "LSTM":
         X, y, scaler = preprocess_data(df, seq_length)
         split = int(0.8 * len(X))
